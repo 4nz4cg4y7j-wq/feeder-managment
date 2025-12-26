@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Dashboard</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <h1>My Feeders</h1>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<main>
+  <div id="feeders-container">
+    <!-- Feeder cards will be dynamically loaded -->
+  </div>
+
+  <div class="schedule-form">
+    <h3>Schedule a Feeding</h3>
+    <form id="scheduleForm">
+      <label>Select Feeder</label>
+      <select id="feederSelect"></select>
+
+      <label>Time:</label>
+      <input type="time" id="feedTime" required>
+
+      <label>Duration (seconds):</label>
+      <input type="number" id="duration" value="2" min="1" required>
+
+      <button type="submit">Schedule Feed</button>
+    </form>
+    <p id="scheduleMessage"></p>
+  </div>
+</main>
+
+<script>
+// Load feeders
+async function loadFeeders() {
+  const res = await fetch('/api/myFeeders', {credentials: 'include'});
+  const feeders = await res.json();
+  const container = document.getElementById('feeders-container');
+  const select = document.getElementById('feederSelect');
+  container.innerHTML = '';
+  select.innerHTML = '';
+  
+  feeders.forEach(f => {
+    container.innerHTML += `
+      <div class="feeder-card">
+        <h4>${f.serial_number}</h4>
+        <p>Status: ${f.sim_status}</p>
+        <p>Subscription: ${f.subscription_status}</p>
+        <p>Last Seen: ${f.last_seen || 'Never'}</p>
+        <button onclick="feedNow(${f.id})" ${f.sim_status !== 'active' ? 'disabled' : ''}>Feed Now</button>
+      </div>
+    `;
+    select.innerHTML += `<option value="${f.id}">${f.serial_number}</option>`;
+  });
+}
+
+// Logout
+async function logout() {
+  await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/login.html';
+}
+
+// Feed Now
+async function feedNow(unitId) {
+  const res = await fetch('/api/feedNow', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({unit_id: unitId}),
+    credentials: 'include'
+  });
+  if(res.ok) alert('Feed command sent!');
+  else alert('Cannot feed. Check SIM or subscription.');
+}
+
+// Schedule feed
+document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const unit_id = document.getElementById('feederSelect').value;
+  const feed_time = document.getElementById('feedTime').value;
+  const duration_seconds = document.getElementById('duration').value;
+
+  const res = await fetch('/api/scheduleFeed', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({unit_id, feed_time, duration_seconds}),
+    credentials: 'include'
+  });
+
+  const data = await res.json();
+  document.getElementById('scheduleMessage').innerText = data.success ? 'Feed scheduled!' : data.error;
+});
+
+// Initialize
+loadFeeders();
+</script>
+</body>
+</html>
