@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <h1>Admin Dashboard</h1>
+  <button onclick="logout()">Logout</button>
+</header>
+
+<main>
+  <div id="all-feeders-container"></div>
+
+  <div class="add-feeder">
+    <h3>Add a New Feeder</h3>
+    <form id="addFeederForm">
+      <label>Serial Number</label>
+      <input type="text" id="serial" required>
+      <label>ICCID</label>
+      <input type="text" id="iccid" required>
+      <button type="submit">Add Feeder</button>
+    </form>
+    <p id="addFeederMessage"></p>
+  </div>
+</main>
+
+<script>
+async function loadAllFeeders() {
+  const res = await fetch('/api/allFeeders', {credentials: 'include'});
+  const feeders = await res.json();
+  const container = document.getElementById('all-feeders-container');
+  container.innerHTML = '';
+  
+  feeders.forEach(f => {
+    container.innerHTML += `
+      <div class="feeder-card">
+        <h4>${f.serial_number}</h4>
+        <p>SIM Status: ${f.sim_status}</p>
+        <p>Subscription: ${f.subscription_status}</p>
+        <button onclick="feedNow(${f.id})" ${f.sim_status !== 'active' ? 'disabled' : ''}>Feed Now</button>
+      </div>
+    `;
+  });
+}
+
+document.getElementById('addFeederForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const serial_number = document.getElementById('serial').value;
+  const iccid = document.getElementById('iccid').value;
+
+  const res = await fetch('/api/addFeeder', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({serial_number, iccid}),
+    credentials: 'include'
+  });
+
+  const data = await res.json();
+  document.getElementById('addFeederMessage').innerText = data.success ? 'Feeder added!' : data.error;
+  loadAllFeeders();
+});
+
+async function logout() {
+  await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/login.html';
+}
+
+async function feedNow(unitId) {
+  const res = await fetch('/api/feedNow', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({unit_id: unitId}),
+    credentials: 'include'
+  });
+  if(res.ok) alert('Feed command sent!');
+  else alert('Cannot feed. Check SIM or subscription.');
+}
+
+loadAllFeeders();
+</script>
+</body>
+</html>
