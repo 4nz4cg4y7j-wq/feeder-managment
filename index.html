@@ -77,29 +77,33 @@ document.getElementById('authForm').addEventListener('submit', async (e) => {
   const url = isRegister ? '/api/register' : '/api/login';
   const bodyData = isRegister ? { username, email, password } : { username, password };
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(bodyData),
-    credentials: 'include'
-  });
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyData),
+      credentials: 'include'
+    });
 
-  const data = await res.json();
-  if(res.ok && data.success){
-    if(isRegister){
-      message.style.color = 'green';
-      message.innerText = 'Registration successful! You can now login.';
-      // Switch to login form after registration
-      toggle.click();
+    const data = await res.json();
+    if(res.ok && data.success){
+      if(isRegister){
+        message.style.color = 'green';
+        message.innerText = 'Registration successful! You can now login.';
+        toggle.click();
+      } else {
+        window.location.href = '/dashboard.html';
+      }
     } else {
-      window.location.href = '/dashboard.html';
+      message.style.color = 'red';
+      message.innerText = data.error || 'Operation failed';
     }
-  } else {
+  } catch(err) {
     message.style.color = 'red';
-    message.innerText = data.error || 'Operation failed';
+    message.innerText = 'Server error. Try again later.';
+    console.error(err);
   }
 });
 </script>
 </body>
 </html>
-
