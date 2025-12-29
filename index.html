@@ -3,29 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Feeder System Login</title>
+<title>Feeder System Login / Register</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div class="login-container">
-  <h2>Login to Your Feeder Account</h2>
+  <h2>Feeder System</h2>
+
+  <!-- Tabs for Login/Register -->
+  <div class="tab-buttons">
+    <button id="loginTab" class="active">Login</button>
+    <button id="registerTab">Register</button>
+  </div>
+
+  <!-- Login Form -->
   <form id="loginForm">
     <label>Username</label>
-    <input type="text" id="username" required>
+    <input type="text" id="loginUsername" required>
     
     <label>Password</label>
-    <input type="password" id="password" required>
+    <input type="password" id="loginPassword" required>
     
     <button type="submit">Login</button>
   </form>
-  <p id="loginMessage"></p>
+
+  <!-- Registration Form -->
+  <form id="registerForm" style="display:none;">
+    <label>Username</label>
+    <input type="text" id="registerUsername" required>
+    
+    <label>Password</label>
+    <input type="password" id="registerPassword" required>
+
+    <label>Email</label>
+    <input type="email" id="registerEmail" required>
+    
+    <button type="submit">Register</button>
+  </form>
+
+  <p id="message"></p>
 </div>
 
 <script>
+// Tab switching
+document.getElementById('loginTab').addEventListener('click', () => {
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('registerForm').style.display = 'none';
+  document.getElementById('loginTab').classList.add('active');
+  document.getElementById('registerTab').classList.remove('active');
+});
+
+document.getElementById('registerTab').addEventListener('click', () => {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('registerForm').style.display = 'block';
+  document.getElementById('loginTab').classList.remove('active');
+  document.getElementById('registerTab').classList.add('active');
+});
+
+// Login
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const username = document.getElementById('username').value;
-  const password = document.getElementById('password').value;
+  const username = document.getElementById('loginUsername').value;
+  const password = document.getElementById('loginPassword').value;
 
   const res = await fetch('/api/login', {
     method: 'POST',
@@ -38,7 +77,30 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
   if(res.ok && data.success) {
     window.location.href = '/dashboard.html';
   } else {
-    document.getElementById('loginMessage').innerText = data.error || 'Login failed';
+    document.getElementById('message').innerText = data.error || 'Login failed';
+  }
+});
+
+// Registration
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const username = document.getElementById('registerUsername').value;
+  const password = document.getElementById('registerPassword').value;
+  const email = document.getElementById('registerEmail').value;
+
+  const res = await fetch('/api/register', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({username, password, email})
+  });
+
+  const data = await res.json();
+  if(res.ok && data.success) {
+    document.getElementById('message').innerText = 'Registration successful! You can now log in.';
+    // Switch to login tab automatically
+    document.getElementById('loginTab').click();
+  } else {
+    document.getElementById('message').innerText = data.error || 'Registration failed';
   }
 });
 </script>
