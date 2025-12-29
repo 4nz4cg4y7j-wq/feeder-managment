@@ -3,106 +3,103 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Feeder System Login / Register</title>
+<title>Feeder System Login/Register</title>
 <link rel="stylesheet" href="css/style.css">
+<style>
+  body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f2f5; margin: 0; }
+  .container { background: #fff; padding: 2em; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+  h2 { text-align: center; margin-bottom: 1em; }
+  form { display: flex; flex-direction: column; }
+  label { margin: 0.5em 0 0.2em; }
+  input { padding: 0.5em; margin-bottom: 1em; border-radius: 5px; border: 1px solid #ccc; }
+  button { padding: 0.7em; background: #007bff; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+  button:hover { background: #0056b3; }
+  .toggle { text-align: center; margin-top: 1em; cursor: pointer; color: #007bff; }
+  .toggle:hover { text-decoration: underline; }
+  #message { color: red; text-align: center; margin-top: 0.5em; }
+</style>
 </head>
 <body>
-<div class="login-container">
-  <h2>Feeder System</h2>
+<div class="container">
+  <h2 id="formTitle">Login</h2>
 
-  <!-- Tabs for Login/Register -->
-  <div class="tab-buttons">
-    <button id="loginTab" class="active">Login</button>
-    <button id="registerTab">Register</button>
-  </div>
+  <form id="authForm">
+    <div id="usernameField">
+      <label>Username</label>
+      <input type="text" id="username" required>
+    </div>
 
-  <!-- Login Form -->
-  <form id="loginForm">
-    <label>Username</label>
-    <input type="text" id="loginUsername" required>
-    
+    <div id="emailField" style="display:none;">
+      <label>Email</label>
+      <input type="email" id="email">
+    </div>
+
     <label>Password</label>
-    <input type="password" id="loginPassword" required>
-    
-    <button type="submit">Login</button>
+    <input type="password" id="password" required>
+
+    <button type="submit" id="submitBtn">Login</button>
   </form>
 
-  <!-- Registration Form -->
-  <form id="registerForm" style="display:none;">
-    <label>Username</label>
-    <input type="text" id="registerUsername" required>
-    
-    <label>Password</label>
-    <input type="password" id="registerPassword" required>
-
-    <label>Email</label>
-    <input type="email" id="registerEmail" required>
-    
-    <button type="submit">Register</button>
-  </form>
-
+  <div class="toggle" id="toggleForm">Switch to Register</div>
   <p id="message"></p>
 </div>
 
 <script>
-// Tab switching
-document.getElementById('loginTab').addEventListener('click', () => {
-  document.getElementById('loginForm').style.display = 'block';
-  document.getElementById('registerForm').style.display = 'none';
-  document.getElementById('loginTab').classList.add('active');
-  document.getElementById('registerTab').classList.remove('active');
+let isRegister = false;
+
+const toggle = document.getElementById('toggleForm');
+const formTitle = document.getElementById('formTitle');
+const emailField = document.getElementById('emailField');
+const submitBtn = document.getElementById('submitBtn');
+const message = document.getElementById('message');
+
+toggle.addEventListener('click', () => {
+  isRegister = !isRegister;
+  if(isRegister){
+    formTitle.innerText = 'Register';
+    emailField.style.display = 'block';
+    submitBtn.innerText = 'Register';
+    toggle.innerText = 'Switch to Login';
+  } else {
+    formTitle.innerText = 'Login';
+    emailField.style.display = 'none';
+    submitBtn.innerText = 'Login';
+    toggle.innerText = 'Switch to Register';
+  }
 });
 
-document.getElementById('registerTab').addEventListener('click', () => {
-  document.getElementById('loginForm').style.display = 'none';
-  document.getElementById('registerForm').style.display = 'block';
-  document.getElementById('loginTab').classList.remove('active');
-  document.getElementById('registerTab').classList.add('active');
-});
-
-// Login
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+document.getElementById('authForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const username = document.getElementById('loginUsername').value;
-  const password = document.getElementById('loginPassword').value;
+  const username = document.getElementById('username').value;
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
 
-  const res = await fetch('/api/login', {
+  const url = isRegister ? '/api/register' : '/api/login';
+  const bodyData = isRegister ? { username, email, password } : { username, password };
+
+  const res = await fetch(url, {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({username, password}),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bodyData),
     credentials: 'include'
   });
 
   const data = await res.json();
-  if(res.ok && data.success) {
-    window.location.href = '/dashboard.html';
+  if(res.ok && data.success){
+    if(isRegister){
+      message.style.color = 'green';
+      message.innerText = 'Registration successful! You can now login.';
+      // Switch to login form after registration
+      toggle.click();
+    } else {
+      window.location.href = '/dashboard.html';
+    }
   } else {
-    document.getElementById('message').innerText = data.error || 'Login failed';
-  }
-});
-
-// Registration
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const username = document.getElementById('registerUsername').value;
-  const password = document.getElementById('registerPassword').value;
-  const email = document.getElementById('registerEmail').value;
-
-  const res = await fetch('/api/register', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({username, password, email})
-  });
-
-  const data = await res.json();
-  if(res.ok && data.success) {
-    document.getElementById('message').innerText = 'Registration successful! You can now log in.';
-    // Switch to login tab automatically
-    document.getElementById('loginTab').click();
-  } else {
-    document.getElementById('message').innerText = data.error || 'Registration failed';
+    message.style.color = 'red';
+    message.innerText = data.error || 'Operation failed';
   }
 });
 </script>
 </body>
 </html>
+
