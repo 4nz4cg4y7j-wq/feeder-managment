@@ -9,7 +9,7 @@
 <body>
 <header>
   <h1>My Feeders</h1>
-  <button onclick="logout()">Logout</button>
+  <button id="logoutBtn">Logout</button>
 </header>
 
 <main>
@@ -38,43 +38,60 @@
 <script>
 // Load feeders
 async function loadFeeders() {
-  const res = await fetch('/api/myFeeders', {credentials: 'include'});
-  const feeders = await res.json();
-  const container = document.getElementById('feeders-container');
-  const select = document.getElementById('feederSelect');
-  container.innerHTML = '';
-  select.innerHTML = '';
-  
-  feeders.forEach(f => {
-    container.innerHTML += `
-      <div class="feeder-card">
-        <h4>${f.serial_number}</h4>
-        <p>Status: ${f.sim_status}</p>
-        <p>Subscription: ${f.subscription_status}</p>
-        <p>Last Seen: ${f.last_seen || 'Never'}</p>
-        <button onclick="feedNow(${f.id})" ${f.sim_status !== 'active' ? 'disabled' : ''}>Feed Now</button>
-      </div>
-    `;
-    select.innerHTML += `<option value="${f.id}">${f.serial_number}</option>`;
-  });
+  try {
+    const res = await fetch('/api/myFeeders', {credentials: 'include'});
+    const feeders = await res.json();
+    const container = document.getElementById('feeders-container');
+    const select = document.getElementById('feederSelect');
+    container.innerHTML = '';
+    select.innerHTML = '';
+
+    feeders.forEach(f => {
+      container.innerHTML += `
+        <div class="feeder-card">
+          <h4>${f.serial_number}</h4>
+          <p>Status: ${f.sim_status}</p>
+          <p>Subscription: ${f.subscription_status}</p>
+          <p>Last Seen: ${f.last_seen || 'Never'}</p>
+          <button onclick="feedNow(${f.id})" ${f.sim_status !== 'active' ? 'disabled' : ''}>Feed Now</button>
+        </div>
+      `;
+      select.innerHTML += `<option value="${f.id}">${f.serial_number}</option>`;
+    });
+  } catch(err) {
+    console.error('Error loading feeders:', err);
+  }
 }
 
 // Logout
-async function logout() {
-  await fetch('/api/logout', { method: 'POST', credentials: 'include' });
-  window.location.href = '/login.html';
-}
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try {
+    const res = await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+    if(res.ok){
+      window.location.href = '/index.html'; // Redirect to login page
+    } else {
+      alert('Logout failed. Try again.');
+    }
+  } catch(err) {
+    console.error('Error logging out:', err);
+    alert('Server error during logout.');
+  }
+});
 
 // Feed Now
 async function feedNow(unitId) {
-  const res = await fetch('/api/feedNow', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({unit_id: unitId}),
-    credentials: 'include'
-  });
-  if(res.ok) alert('Feed command sent!');
-  else alert('Cannot feed. Check SIM or subscription.');
+  try {
+    const res = await fetch('/api/feedNow', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({unit_id: unitId}),
+      credentials: 'include'
+    });
+    if(res.ok) alert('Feed command sent!');
+    else alert('Cannot feed. Check SIM or subscription.');
+  } catch(err) {
+    console.error('Error sending feed command:', err);
+  }
 }
 
 // Schedule feed
@@ -84,15 +101,19 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
   const feed_time = document.getElementById('feedTime').value;
   const duration_seconds = document.getElementById('duration').value;
 
-  const res = await fetch('/api/scheduleFeed', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({unit_id, feed_time, duration_seconds}),
-    credentials: 'include'
-  });
-
-  const data = await res.json();
-  document.getElementById('scheduleMessage').innerText = data.success ? 'Feed scheduled!' : data.error;
+  try {
+    const res = await fetch('/api/scheduleFeed', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({unit_id, feed_time, duration_seconds}),
+      credentials: 'include'
+    });
+    const data = await res.json();
+    document.getElementById('scheduleMessage').innerText = data.success ? 'Feed scheduled!' : data.error;
+  } catch(err) {
+    console.error('Error scheduling feed:', err);
+    document.getElementById('scheduleMessage').innerText = 'Server error. Try again.';
+  }
 });
 
 // Initialize
